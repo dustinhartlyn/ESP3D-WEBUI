@@ -1,6 +1,7 @@
 aud=new AudioContext() // browsers limit the number of concurrent audio contexts, so you better re-use'em
 
 var gCodeLoaded = false;
+//var gCodeRunning = false; // used to track when a job file begins and when it ends
 
 function beep(vol, freq, duration){
     //    v=aud.createOscillator()
@@ -287,6 +288,7 @@ var red = '#f64646';
 var gray = '#f6f6f6';
 
 function setRunnable() {
+    // Evaluated at every ping from esp
     if (gCodeLoaded) {
         // A GCode file is ready to go
         setLeftButton(true, green, 'Start', runGCode);
@@ -311,7 +313,7 @@ function stopAndRecover() {
     requestModes();
 }
 
-function tabletGrblState(grbl, response) {
+function tabletGrblState(grbl, response) { // Evaluated at every update from ESP
     // tabletShowResponse(response)
     var stateName = grbl.stateName;
 
@@ -361,6 +363,13 @@ function tabletGrblState(grbl, response) {
             break;
         case 'Idle':
             setRunnable();
+            //if (gCodeRunning) {
+                //Job just finished
+                // Make sure that this is not activated by canceled job
+                // will need the other job to be conditoinal
+            //    console.log("gcode finished");
+            //    gCodeRunning = false;
+            //}
             break;
         case 'Hold':
             setLeftButton(true, green, 'Resume', resumeGCode);
@@ -371,6 +380,20 @@ function tabletGrblState(grbl, response) {
         case 'Run':
             setLeftButton(false, gray, 'Start', null);
             setRightButton(true, red, 'Pause', pauseGCode);
+            //if (!gCodeRunning) {
+                // Job just started
+                // Run script for begining job
+                // will need to search through index to see if any jobs match the required name
+                // fist for JobFileName + _Start
+                // Then for _Start (a general start file)
+                // will then need to store the original job title for running after the file is finished. 
+                //
+                // This works
+                //
+                //files_file_list
+                //gCodeRunning = true;
+            //}
+            //console.log("File Running: " + files_file_list[0].name);
             break;
         case 'Check':
             setLeftButton(true, gray, 'Start', null);
@@ -544,6 +567,8 @@ function scrollToLine(lineNumber) {
 
 function runGCode() {
     gCodeFilename && sendCommand('$sd/run=' + gCodeFilename);
+    console.log("**** Test Function LOG xx1");
+    
 }
 
 function loadGCode() {

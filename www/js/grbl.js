@@ -182,6 +182,7 @@ function get_status() {
 }
 
 function parseGrblStatus(response) {
+    //console.log("function: parseGrblStatus");
     var grbl = {
         stateName: '',
         message: '',
@@ -504,6 +505,7 @@ var collectHandler = undefined;
 var collectedSettings = null;
 
 function grblHandleMessage(msg) {
+    //console.log("function: grblHandleMessage");
     tabletShowMessage(msg, collecting);
 
     // We handle these two before collecting data because they can be
@@ -569,6 +571,16 @@ function grblHandleMessage(msg) {
         return;
     }
     if (msg.startsWith('[MSG:')) {
+        //console.log("if [MSG: == true");
+        //console.log("message:" + msg.split(":")[2]);
+        //if (msg.split(":")[2] == " Program End]") {
+        //console.log('msg.indexOf("job succeeded"): ' + msg.indexOf("job succeeded"));
+        //console.log('msg.indexOf("test"): ' + msg.indexOf("test"));
+        if (msg.indexOf("job succeeded") > -1) {
+            program_ended(msg);
+            
+        }
+        //field.split(':');
         return;
     }
     if (msg.startsWith('error:') || msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {

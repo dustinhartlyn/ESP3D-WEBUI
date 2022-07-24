@@ -11,6 +11,8 @@ var tft_usb = "U:"
 var printer_sd = "SDCARD:"
 var current_source = "/"
 var last_source = "/"
+var stored_job_file = "";
+
 
 function build_file_filter_list(filters_list) {
     build_accept(filters_list);
@@ -18,7 +20,6 @@ function build_file_filter_list(filters_list) {
 }
 
 function update_files_list() {
-    //console.log("Updating list");
     if (files_file_list.length == 0) return;
     for (var i = 0; i < files_file_list.length; i++) {
         var isdirectory = files_file_list[i].isdir;
@@ -152,11 +153,55 @@ function files_build_file_line(index) {
     return content;
 }
 
-function files_print(index) {
+function files_print(index) { // Run when files from SD card are started. 
     files_print_filename(files_currentPath + files_file_list[index].name);
 }
 
+
+
+function find_SD_file(filename) {
+    for (var f = 0; f < files_file_list.length; f++) {
+        //console.log("testing: " + f + "  Name: " + files_file_list[f].name.split(".")[0]);
+        if (files_file_list[f].name.split(".")[0] == filename) return "/" + files_file_list[f].name
+    }
+    return false; // no match found..
+
+    /// need to find a way to locate _start or _Start with any file extension, and then store the name of the file with the exentions. 
+
+}
+
+
+function program_ended(msg) {
+    if (stored_job_file != "") files_print_filename(""); // if a job is stored, run it
+    // run ending file after job if it exists, and it has not been run already
+    else if (find_SD_file("_End") && msg.indexOf("_End") == -1) { 
+        stored_job_file = find_SD_file("_End");
+        files_print_filename("blank"); // will run stored file
+    }
+    else if (find_SD_file("_end") && msg.indexOf("_end") == -1) {
+        stored_job_file = find_SD_file("_end");
+        files_print_filename("blank");
+    }
+}
+
+
 function files_print_filename(filename) {
+    // if there is a start file, run it before running the selected job.
+    // Do not run a start job if the job being run is the start job. 
+    if (stored_job_file == "") {
+        if (find_SD_file("_Start") != false && find_SD_file("_Start") != filename) {
+            stored_job_file = filename;
+            filename = find_SD_file("_Start");
+        } else if (find_SD_file("_start") != false && find_SD_file("_start") != filename) {
+            stored_job_file = filename;
+            filename = find_SD_file("_start");
+        }
+    } else {
+        filename = stored_job_file;
+        stored_job_file = "";
+
+    }
+    //console.log("run file: " + filename);
     var cmd = "";
     if (target_firmware == "smoothieware") {
         cmd = "play " + filename;
@@ -164,6 +209,7 @@ function files_print_filename(filename) {
         get_status();
         on_autocheck_status(true);
         cmd = "$SD/Run=" + filename;
+        console.log("Start Job from SD Card");
     } else {
         var newfilename = filename;
         if ((current_source == tft_sd) || (current_source == tft_usb))newfilename = current_source+filename;
@@ -172,6 +218,7 @@ function files_print_filename(filename) {
     if (target_firmware == "grbl-embedded") SendPrinterCommand(cmd);
     else SendPrinterSilentCommand(cmd);
 }
+
 
 function files_Createdir() {
     inputdlg(translate_text_item("Please enter directory name"), translate_text_item("Name:"), process_files_Createdir);
